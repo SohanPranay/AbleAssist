@@ -610,27 +610,91 @@ function estimateEmotionFromFace(lm) {
 // Training data storage with localStorage persistence
 const trainingData = {};
 
-// Load training data from localStorage on page load
+// Load training data from localStorage and backend on page load
 function loadTrainingData() {
   try {
     const saved = localStorage.getItem('gestureTrainingData');
     if (saved) {
       const parsed = JSON.parse(saved);
       Object.assign(trainingData, parsed);
-      console.log('Loaded training data:', Object.keys(trainingData));
+      console.log('Loaded training data from localStorage:', Object.keys(trainingData));
     }
+    
+    // Also load from backend
+    loadFromBackend();
   } catch (e) {
     console.warn('Failed to load training data:', e);
   }
 }
 
-// Save training data to localStorage
+// Load training data from backend API
+async function loadFromBackend() {
+  try {
+    const response = await fetch('https://ableassist-project.onrender.com/api/gestures/all');
+    if (!response.ok) {
+      console.warn('Failed to load gestures from backend:', response.statusText);
+      return;
+    }
+    
+    const backendGestures = await response.json();
+    
+    // Merge backend data with local training data
+    if (backendGestures && Array.isArray(backendGestures)) {
+      backendGestures.forEach(gesture => {
+        if (gesture.label && gesture.landmarks) {
+          if (!trainingData[gesture.label]) {
+            trainingData[gesture.label] = [];
+          }
+          trainingData[gesture.label].push(gesture.landmarks);
+        }
+      });
+      
+      // Save merged data to localStorage
+      localStorage.setItem('gestureTrainingData', JSON.stringify(trainingData));
+      console.log('Loaded and merged training data from backend:', Object.keys(trainingData));
+    }
+  } catch (error) {
+    console.error('Error loading from backend:', error);
+  }
+}
+
+// Save training data to localStorage and backend
 function saveTrainingData() {
   try {
     localStorage.setItem('gestureTrainingData', JSON.stringify(trainingData));
     console.log('Saved training data to localStorage');
+    
+    // Also save to backend
+    saveToBackend();
   } catch (e) {
     console.warn('Failed to save training data:', e);
+  }
+}
+
+// Save training data to backend API
+async function saveToBackend() {
+  try {
+    for (const [label, samples] of Object.entries(trainingData)) {
+      for (const sample of samples) {
+        const response = await fetch('https://ableassist-project.onrender.com/api/gestures/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            label: label,
+            landmarks: sample
+          })
+        });
+        
+        if (!response.ok) {
+          console.warn('Failed to save gesture to backend:', response.statusText);
+        }
+      }
+    }
+    console.log('Successfully saved training data to backend');
+  } catch (error) {
+    console.error('Error saving to backend:', error);
   }
 }
 

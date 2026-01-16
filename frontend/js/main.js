@@ -134,11 +134,27 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      // DEFAULT → GOOGLE SEARCH
-      const googleSearch =
-        'https://www.google.com/search?q=' + encodeURIComponent(query);
-
-      window.open(googleSearch, '_blank');
+      // BACKEND API SEARCH
+      fetch(`https://ableassist-project.onrender.com/search?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.results && data.results.length > 0) {
+            // Open first result in new tab
+            window.open(data.results[0].url || data.results[0], '_blank');
+          } else {
+            // Fallback to Google search if no results
+            const googleSearch =
+              'https://www.google.com/search?q=' + encodeURIComponent(query);
+            window.open(googleSearch, '_blank');
+          }
+        })
+        .catch(error => {
+          console.error('Search API error:', error);
+          // Fallback to Google search on error
+          const googleSearch =
+            'https://www.google.com/search?q=' + encodeURIComponent(query);
+          window.open(googleSearch, '_blank');
+        });
     }
   }
 });

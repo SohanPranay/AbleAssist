@@ -35,9 +35,25 @@ function handleMultiModeSearch(query) {
     return;
   }
 
-  // Otherwise do Google search
-  const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
-  window.open(googleUrl, "_blank");
+  // BACKEND API SEARCH
+  fetch(`https://ableassist-project.onrender.com/search?q=${encodeURIComponent(text)}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.results && data.results.length > 0) {
+        // Open first result in new tab
+        window.open(data.results[0].url || data.results[0], '_blank');
+      } else {
+        // Fallback to Google search if no results
+        const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
+        window.open(googleUrl, "_blank");
+      }
+    })
+    .catch(error => {
+      console.error('MultiMode search API error:', error);
+      // Fallback to Google search on error
+      const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
+      window.open(googleUrl, "_blank");
+    });
 }
 
 function openWebsite(name) {

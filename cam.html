@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cam Page | AbleAssist AI</title>
+  <link rel="stylesheet" href="css/sign.css" />
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+  <header class="top-bar">
+    <div style="display:flex; align-items:center; gap:12px"><h2>Cam Page</h2></div>
+    <div class="top-nav">
+      <a href="index.html">Home</a>
+      <a href="cam.html" class="active">Cam Page</a>
+      <a href="voice.html">Voice Page</a>
+      <button id="themeToggleCam">Light / Dark</button>
+    </div>
+  </header>
+
+  <!-- reuse sign layout and functionality for camera-only page -->
+  <main>
+    <section class="camera-section two-column">
+      <div class="left-column">
+        <div class="camera-box">
+          <video id="camera" autoplay playsinline></video>
+          <p class="instruction">Show your hands for recognition</p>
+        </div>
+        <div style="margin-top:12px">
+          <button onclick="retryCamera()">Retry</button>
+          <button id="gestureBookBtn">Gesture Book</button>
+          <button id="cameraToggleBtn">Camera On/Off</button>
+          <button id="flipCameraBtn">Flip Preview</button>
+        </div>
+      </div>
+
+      <aside class="side-menu right-column">
+        <button class="back-btn" onclick="window.open('index.html','_self')">⬅ Back</button>
+        <nav class="menu-items" aria-label="Side menu">
+          <button class="menu-item" id="profileBtn">Profile</button>
+          <button class="menu-item" id="onlineToggle">Online</button>
+          <button class="menu-item" id="feedbackBtn">Feedback</button>
+          <button class="menu-item" id="helpBtn">Help</button>
+        </nav>
+        <p id="status" class="status-text hidden">Detecting gesture...</p>
+        <div id="textOutput" class="text-output">
+          <div class="detected-row">Detected: <span id="detectedLetter">-</span></div>
+          <textarea id="resultText" rows="3" placeholder="Recognized text will appear here..."></textarea>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="js/sign.js"></script>
+  <script>
+    // local theme toggle
+    const tbtn = document.getElementById('themeToggleCam');
+    if (tbtn) tbtn.addEventListener('click', () => document.body.classList.toggle('dark'));
+  </script>
+</body>
+</html>
+
+<!-- redirect old cam page to merged multimode page -->
+<script>
+  // If user opens old cam.html, redirect to multimode (voice.html)
+  if (window.location.pathname.endsWith('cam.html')) {
+    window.location.replace('voice.html');
+  }
+</script>

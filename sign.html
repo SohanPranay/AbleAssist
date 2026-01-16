@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sign Language Mode | AbleAssist AI</title>
+  <link rel="stylesheet" href="css/sign.css" />
+</head>
+<body>
+
+  <header class="top-bar">
+    <div style="display:flex; align-items:center; gap:12px"><h2>Sign Language Mode</h2></div>
+    <div class="top-nav">
+      <a href="index.html">Home</a>
+      <a href="voice.html">MultiMode</a>
+      <button id="themeToggleSign">Light / Dark</button>
+    </div>
+    <div class="top-right-controls">
+      <div class="control-box" id="wifiBox" title="Wi‑Fi status" role="button" aria-pressed="false">📶</div>
+      <div class="control-box" id="themeBox" title="Toggle light / dark" role="button" aria-pressed="false">🌓</div>
+      <div class="control-box" id="accessBox" title="Accessibility options" role="button" aria-pressed="false">♿</div>
+    </div>
+  </header>
+
+  <main class="main-container two-column">
+    <section class="camera-section left-column">
+      <div class="camera-box">
+        <video id="camera" autoplay playsinline></video>
+        <p class="instruction">Show expression or gesture properly</p>
+      </div>
+
+      <div style="margin-top:12px">
+        <button onclick="retryCamera()">Retry</button>
+        <button id="gestureBookBtn">Gesture Book</button>
+        <button id="cameraToggleBtn">Camera On/Off</button>
+        <button id="flipCameraBtn">Flip Preview</button>
+        <button id="trainToggleBtn">Train Mode</button>
+        <button id="resetTrainingBtn">Reset Training</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <button id="searchToggleBtn">Toggle Search</button>
+        <input id="searchInput" placeholder="Search gestures..." style="display:none; width:90%; margin-top:8px; padding:8px;" />
+      </div>
+    </section>
+
+    <aside class="side-menu right-column">
+      <button class="back-btn" onclick="goBack()">⬅ Back</button>
+      <nav class="menu-items" aria-label="Side menu">
+        <button class="menu-item" id="profileBtn">Profile</button>
+        <button class="menu-item" id="onlineToggle">Online</button>
+        <button class="menu-item" id="feedbackBtn">Feedback</button>
+        <button class="menu-item" id="helpBtn">Help</button>
+      </nav>
+
+      <p id="status" class="status-text hidden">Detecting gesture...</p>
+      <canvas id="motionCanvas" width="160" height="120" style="display:none"></canvas>
+
+      <div id="textOutput" class="text-output">
+        <div class="detected-row">Detected: <span id="detectedLetter">-</span></div>
+        <textarea id="resultText" rows="3" placeholder="Recognized text will appear here..."></textarea>
+        <div class="text-actions">
+          <button id="clearText">Clear</button>
+          <button id="backspaceText">Backspace</button>
+        </div>
+        <div id="emotionDisplay" class="emotion-badge">Emotion: -</div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/knn-classifier@1.2.2/dist/knn-classifier.min.js"></script>
+  <script src="js/sign.js"></script>
+  <script>
+    const tt = document.getElementById('themeToggleSign');
+    if (tt) tt.addEventListener('click', () => document.body.classList.toggle('dark'));
+  </script>
+</body>
+</html>

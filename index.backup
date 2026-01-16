@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AbleAssist AI</title>
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <div class="content-area">
+      <!-- TOP BAR -->
+      <header class="top-bar">
+        <div style="display:flex; align-items:center; gap:12px">
+          <h2>AbleAssist AI</h2>
+        </div>
+        <div class="top-nav">
+          <a href="index.html" class="active">Home</a>
+          <a href="cam.html">Cam Page</a>
+          <a href="voice.html">Voice Page</a>
+          <button id="themeToggleTop">Light / Dark</button>
+        </div>
+      </header>
+
+      <!-- COMMAND INPUT -->
+      <section class="command-section">
+        <input
+          type="text"
+          id="commandBox"
+          placeholder="Speak, show, or type commands"
+          aria-label="Command input"
+        />
+      </section>
+
+      <!-- MAIN CONTENT removed (duplicate panels) -->
+
+      <!-- three card area (visual layout) -->
+      <section class="cards">
+        <div class="card small">
+          <div class="clock" id="clockBox">12:00</div>
+          <div class="meta" id="dateBox">Jan 1, 2026</div>
+          <div style="height:18px"></div>
+          <div class="meta">Weather: Sunny • 25°C</div>
+        </div>
+
+        <div class="card middle">
+          <div style="width:100%">
+            <h3 style="text-align:left">Camera</h3>
+            <div class="picture-box">
+              <video id="cameraPreview" autoplay playsinline style="background:#000; border-radius:12px"></video>
+            </div>
+          </div>
+          <div class="voice-semicircle">
+            <div class="voice-controls">
+              <button onclick="activateVoice()">TALK</button>
+              <button onclick="activateSign()">SIGN</button>
+              <button onclick="activateType()">TYPE</button>
+              <button id="perspectiveBtn">Flip</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card small">
+          <h3 style="margin-top:6px">Info</h3>
+          <p class="meta">Shortcuts, status, and other widgets can appear here.</p>
+        </div>
+      </section>
+    </div>
+    <!-- RIGHT: decorative/placeholder left as empty to keep left-menu removed per new layout -->
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

@@ -2,11 +2,71 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0; url=index%20(1).html" />
-  <title>AbleAssist</title>
-  <script>
-    window.location.replace('index%20(1).html');
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AbleAssist – Animated Landing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css" />
 </head>
-<body></body>
+<body id="indexPage">
+
+  <!-- INTRO -->
+  <div class="intro"><h1>AbleAssist</h1></div>
+
+  <!-- FLOATING SEARCH -->
+  <div class="search-bar" role="search">
+    <span aria-hidden="true">🔍</span>
+    <input id="indexSearchInput" placeholder="Search food, emotions, places..." />
+  </div>
+
+  <!-- MAIN SITE -->
+  <div class="site">
+
+
+    <section class="hero">
+      <div class="hero-left">
+        <small>Hi, new friend!</small>
+        <h1>Technology should adapt to people,<br>not force people to adapt to technology!</h1>
+        <p>Welcome to AbleAssist! An assistant that understands ability, not limitation.</p>
+        <div class="buttons">
+          <button class="btn-primary"><a href="voice.html" style="text-decoration:none;color:inherit;">Guide me</a></button>
+          <button class="btn-secondary">About us</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- About Us Modal -->
+  <div id="aboutModal" aria-hidden="true" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; padding:20px; z-index:1000;">
+    <div role="dialog" aria-modal="true" aria-labelledby="aboutTitle" style="max-width:800px; width:100%; background:#ffffff; color:#111; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
+      <div style="display:flex; justify-content:flex-end; padding:8px 12px;">
+        <button id="aboutCloseBtn" aria-label="Close About AbleAssist" style="background:#eee; border:0; border-radius:8px; padding:8px 12px; cursor:pointer;">Close</button>
+      </div>
+      <div style="padding:10px 24px 24px; text-align:center;">
+        <h2 id="aboutTitle" style="margin:6px 0 14px; font-weight:800; font-size:28px;">AbleAssist</h2>
+        <p style="margin:0 auto 12px; max-width:720px; line-height:1.6;">
+          AbleAssist is an accessibility-focused web application designed to make digital interaction more inclusive for everyone. Our project combines voice assistance, <a href="sign.html" style="color:#111;">sign language recognition</a>, and multimodal interaction to help bridge communication gaps for people with different abilities.
+        </p>
+        <p style="margin:0 auto 12px; max-width:720px; line-height:1.6;">
+          The core idea behind AbleAssist is to allow users to interact naturally—whether by speaking, typing, or using hand gestures—without barriers. By integrating real-time camera input, speech recognition, and gesture-based controls, we aim to create a platform that adapts to the user, not the other way around.
+        </p>
+        <p style="margin:0 auto 4px; max-width:720px; line-height:1.6; font-weight:600;">This project was developed with a strong focus on:</p>
+        <ul style="display:inline-block; text-align:left; margin:0 auto 12px; padding-left:18px; line-height:1.6;">
+          <li>Accessibility and inclusivity</li>
+          <li>Real-time voice and sign language interaction</li>
+          <li>User-friendly and intuitive design</li>
+          <li>Assistive technology for everyday use</li>
+        </ul>
+        <p style="margin:0 auto 12px; max-width:720px; line-height:1.6;">
+          AbleAssist is built as a learning-driven project, combining web technologies and machine learning concepts to explore how AI can be used responsibly to improve accessibility.
+        </p>
+        <h3 style="margin:12px 0 6px; font-weight:800;">Team</h3>
+        <p style="margin:0 auto 8px; max-width:720px; line-height:1.6;">This project is developed by:</p>
+        <p style="margin:0; font-weight:700;">Sohan Pranay</p>
+        <p style="margin:0 0 14px; font-weight:700;">Aditi Bera</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
 </html>

@@ -4,7 +4,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const bodyParser = require("body-parser");
 
 // Routes
 const gestureRoutes = require("./routes/gestureRoutes");
@@ -19,7 +18,7 @@ const Gesture = require("./models/Gesture");
 const app = express();
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json()); // ✅ replaces body-parser
 
 // Debug to confirm correct file is running
 console.log("🔥 SERVER.JS FILE LOADED");

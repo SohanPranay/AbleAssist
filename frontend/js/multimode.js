@@ -1,5 +1,8 @@
 // multimode.js - MultiMode search functionality
 
+// API Configuration
+const API_BASE = "https://ableassist-project.onrender.com";
+
 document.addEventListener("DOMContentLoaded", () => {
   const multiSearch = document.getElementById("voiceSearch");
 
@@ -36,7 +39,7 @@ function handleMultiModeSearch(query) {
   }
 
   // BACKEND API SEARCH
-  fetch(`https://ableassist-project.onrender.com/search?q=${encodeURIComponent(text)}`)
+  fetch(`${API_BASE}/search?q=${encodeURIComponent(text)}`)
     .then(response => response.json())
     .then(data => {
       if (data.results && data.results.length > 0) {

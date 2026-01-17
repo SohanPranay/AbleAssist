@@ -1,6 +1,9 @@
 // Main script shared by pages.
 // Keep all behaviors guarded by element existence so each page can safely load this file.
 
+// API Configuration
+const API_BASE = "https://ableassist-project.onrender.com";
+
 // ----- index.html: intro overlay -> reveal homepage smoothly -----
 (function initIndexIntroReveal() {
   try {
@@ -135,7 +138,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       // BACKEND API SEARCH
-      fetch(`https://ableassist-project.onrender.com/search?q=${encodeURIComponent(query)}`)
+      fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`)
         .then(response => response.json())
         .then(data => {
           if (data.results && data.results.length > 0) {

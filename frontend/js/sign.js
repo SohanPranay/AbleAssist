@@ -670,6 +670,9 @@ function estimateEmotionFromFace(lm) {
   return 'Neutral';
 }
 
+// API Configuration
+const API_BASE = "https://ableassist-project.onrender.com";
+
 // Training data storage with localStorage persistence
 const trainingData = {};
 
@@ -708,7 +711,7 @@ function loadTrainingData() {
 // Load training data from backend API (now expecting normalized landmarks)
 async function loadFromBackend() {
   try {
-    const response = await fetch('https://ableassist-project.onrender.com/api/gestures/all');
+    const response = await fetch(`${API_BASE}/api/gestures/all`);
     if (!response.ok) {
       console.warn('Failed to load gestures from backend:', response.statusText);
       return;
@@ -766,17 +769,19 @@ async function saveToBackend() {
   try {
     for (const [label, samples] of Object.entries(trainingData)) {
       for (const sample of samples) {
-        const response = await fetch('https://ableassist-project.onrender.com/api/gestures/save', {
+        const response = await fetch(`${API_BASE}/api/train`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             label: label,
-            landmarks: sample, // These are now normalized landmarks
-            normalized: true // Flag to indicate data is normalized
+            data: sample // These are now normalized landmarks
           })
         });
+        
+        const result = await response.json();
+        console.log('🟢 TRAINING CONFIRMATION:', result);
         
         if (!response.ok) {
           console.warn('Failed to save normalized gesture to backend:', response.statusText);

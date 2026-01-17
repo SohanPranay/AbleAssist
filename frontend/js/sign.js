@@ -673,40 +673,34 @@ function estimateEmotionFromFace(lm) {
 // API Configuration
 const API_BASE = "https://ableassist-project.onrender.com";
 
-// Training data storage with localStorage persistence
-const trainingData = {};
+// Global gestures array - loaded from MongoDB on every app start
+let trainedGestures = [];
 
-// Load training data from localStorage and backend on page load
-function loadTrainingData() {
+// Load gestures from MongoDB on app startup
+async function loadGestures() {
   try {
-    const saved = localStorage.getItem('gestureTrainingData');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      Object.assign(trainingData, parsed);
-      console.log('🔍 STEP 1 - TRAINING DATA CHECK:');
-      console.log('Loaded training data from localStorage:', Object.keys(trainingData));
-      console.log('Training data samples per label:');
-      Object.entries(trainingData).forEach(([label, samples]) => {
-        console.log(`${label}: ${samples.length} samples`);
-      });
-      
-      // Check if we have actual training data
-      const totalSamples = Object.values(trainingData).reduce((sum, samples) => sum + samples.length, 0);
-      console.log(`Total training samples: ${totalSamples}`);
-      
-      if (totalSamples === 0) {
-        console.warn('❌ NO TRAINING DATA FOUND - This is the bug!');
-      } else {
-        console.log('✅ Training data exists');
-      }
-    }
+    const res = await fetch(`${API_BASE}/api/gestures`);
+    trainedGestures = await res.json();
+    console.log("Loaded gestures:", trainedGestures.length);
     
-    // Also load from backend
-    loadFromBackend();
-  } catch (e) {
-    console.warn('Failed to load training data:', e);
+    // Convert to trainingData format for compatibility
+    const trainingData = {};
+    trainedGestures.forEach(gesture => {
+      if (!trainingData[gesture.label]) {
+        trainingData[gesture.label] = [];
+      }
+      trainingData[gesture.label].push(gesture.data);
+    });
+    
+    return trainingData;
+  } catch (error) {
+    console.error("Failed to load gestures:", error);
+    return {};
   }
 }
+
+// Load gestures immediately when script loads
+loadGestures();
 
 // Load training data from backend API (now expecting normalized landmarks)
 async function loadFromBackend() {
@@ -764,31 +758,26 @@ function saveTrainingData() {
   }
 }
 
-// Save training data to backend API (now using normalized landmarks)
-async function saveToBackend() {
+// Save single gesture to backend API
+async function saveToBackend(label, data) {
   try {
-    for (const [label, samples] of Object.entries(trainingData)) {
-      for (const sample of samples) {
-        const response = await fetch(`${API_BASE}/api/train`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            label: label,
-            data: sample // These are now normalized landmarks
-          })
-        });
-        
-        const result = await response.json();
-        console.log('🟢 TRAINING CONFIRMATION:', result);
-        
-        if (!response.ok) {
-          console.warn('Failed to save normalized gesture to backend:', response.statusText);
-        }
-      }
+    const response = await fetch(`${API_BASE}/api/train`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        label: label,
+        data: data // These are normalized landmarks
+      })
+    });
+    
+    const result = await response.json();
+    console.log('🟢 TRAINING CONFIRMATION:', result);
+    
+    if (!response.ok) {
+      console.warn('Failed to save normalized gesture to backend:', response.statusText);
     }
-    console.log('Successfully saved normalized training data to backend');
   } catch (error) {
     console.error('Error saving to backend:', error);
   }
@@ -822,7 +811,7 @@ function resetTrainingData() {
   if (statusText) statusText.innerText = 'Training reset. Turn Train Mode ON and save samples.';
 }
 
-// Fix TRAIN MODE logic with localStorage persistence
+// Fix TRAIN MODE logic with MongoDB persistence
 function captureSample(label) {
   if (!currentLandmarks) {
     alert("Show your hand clearly inside the camera");
@@ -838,13 +827,12 @@ function captureSample(label) {
   console.log('✅ TRAINING - Normalized data captured');
   console.log('Sample length:', normalizedData.length);
   
-  trainingData[label] ??= [];
-  trainingData[label].push(normalizedData);
-
-  // Save to localStorage after each capture
-  saveTrainingData();
-  console.log(`✅ TRAINING - Captured normalized sample for ${label}`);
-  console.log(`Total samples for ${label}:`, trainingData[label].length);
+  // Save directly to MongoDB
+  saveToBackend(label, normalizedData);
+  console.log(`✅ TRAINING - Captured and saved sample for ${label}`);
+  
+  // Reload gestures from MongoDB to get latest data
+  loadGestures();
 }
 
 // Simple in-memory training store: letter -> { sum: Float32Array, count: number }
@@ -963,13 +951,13 @@ function onGestureDetected(letter) {
 
 // Enhanced gesture detection with better UI feedback using normalized landmarks
 function predictGestureSimple() {
-  if (!currentLandmarks || Object.keys(trainingData).length === 0) {
+  if (!currentLandmarks || trainedGestures.length === 0) {
     console.log('🔍 PREDICTION - No landmarks or no training data');
     return null;
   }
 
   console.log('🔍 STEP 3 - DISTANCE THRESHOLD CHECK:');
-  console.log('Available training labels:', Object.keys(trainingData));
+  console.log('Available trained gestures:', trainedGestures.map(g => g.label));
   
   // Normalize current landmarks for device-independent comparison
   const normalizedCurrent = normalizeLandmarks(currentLandmarks);
@@ -978,17 +966,15 @@ function predictGestureSimple() {
   let bestMatch = null;
   let bestDistance = Infinity;
 
-  // Compare with all trained samples (which are now normalized)
-  for (const [label, samples] of Object.entries(trainingData)) {
-    console.log(`Comparing with ${label} (${samples.length} samples)`);
-    for (const sample of samples) {
-      // Calculate Euclidean distance between normalized vectors
-      const distance = euclideanDistance(normalizedCurrent, sample);
-      
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestMatch = label;
-      }
+  // Compare with all trained gestures from MongoDB
+  for (const gesture of trainedGestures) {
+    console.log(`Comparing with ${gesture.label}`);
+    // Calculate Euclidean distance between normalized vectors
+    const distance = euclideanDistance(normalizedCurrent, gesture.data);
+    
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestMatch = gesture.label;
     }
   }
 
@@ -999,10 +985,6 @@ function predictGestureSimple() {
   // TEMPORARY FIX: Remove threshold completely to see if prediction works
   console.log('✅ PREDICTION - Returning best match without threshold');
   return bestMatch; // No threshold condition - always return best match
-  
-  // Original threshold logic (commented out for debugging)
-  // const threshold = 0.3; // Lower threshold for normalized data
-  // return bestDistance < threshold ? bestMatch : null;
 }
 
 // Debounce / stability gating: emit one character per held sign

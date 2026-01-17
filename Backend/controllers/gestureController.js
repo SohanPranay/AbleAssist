@@ -1,28 +1,37 @@
-const fs = require("fs");
-const path = require("path");
+const Gesture = require("../models/Gesture");
 
-const dataPath = path.join(__dirname, "../data/gestures.json");
+exports.saveGesture = async (req, res) => {
+  try {
+    const { label, landmarks, normalized } = req.body;
 
-exports.saveGesture = (req, res) => {
-  const { label, landmarks } = req.body;
+    if (!label || !landmarks) {
+      return res.status(400).json({ error: "Invalid data" });
+    }
 
-  if (!label || !landmarks) {
-    return res.status(400).json({ error: "Invalid data" });
+    // Save to MongoDB
+    const gesture = new Gesture({
+      label: label,
+      data: landmarks, // normalized 63 landmark values
+      normalized: normalized || true
+    });
+
+    await gesture.save();
+
+    console.log("✅ TRAINING DATA:", { label, normalized });
+    res.json({ message: "Gesture saved to MongoDB", gesture });
+  } catch (err) {
+    console.error("❌ Error saving gesture:", err);
+    res.status(500).json({ error: "Failed to save gesture" });
   }
-
-  let data = [];
-  if (fs.existsSync(dataPath)) {
-    data = JSON.parse(fs.readFileSync(dataPath));
-  }
-
-  data.push({ label, landmarks, time: Date.now() });
-  fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
-
-  res.json({ message: "Gesture saved" });
 };
 
-exports.getGestures = (req, res) => {
-  if (!fs.existsSync(dataPath)) return res.json([]);
-  const data = JSON.parse(fs.readFileSync(dataPath));
-  res.json(data);
+exports.getGestures = async (req, res) => {
+  try {
+    const gestures = await Gesture.find().sort({ createdAt: -1 });
+    console.log("📤 Returning gestures from MongoDB:", gestures.length, "items");
+    res.json(gestures);
+  } catch (err) {
+    console.error("❌ Error loading gestures:", err);
+    res.status(500).json({ error: "Failed to load gestures" });
+  }
 };

@@ -512,7 +512,65 @@ function lastLandmarksSnapshot() {
   return lastLandmarks ? lastLandmarks : null;
 }
 
-// Convert landmarks to flattened array for ML
+// ----- LANDMARK NORMALIZATION (Device-Independent ML) -----
+function normalizeLandmarks(landmarks) {
+  const wrist = landmarks[0];
+
+  // Step 1: translate so wrist = (0,0,0)
+  const translated = landmarks.map(pt => ({
+    x: pt.x - wrist.x,
+    y: pt.y - wrist.y,
+    z: pt.z - wrist.z
+  }));
+
+  // Step 2: compute hand size (wrist → middle finger tip)
+  const ref = translated[12];
+  const handSize = Math.sqrt(
+    ref.x * ref.x +
+    ref.y * ref.y +
+    ref.z * ref.z
+  ) || 1; // avoid divide by zero
+
+  // Step 3: scale + flatten
+  const normalized = [];
+  translated.forEach(pt => {
+    normalized.push(
+      pt.x / handSize,
+      pt.y / handSize,
+      pt.z / handSize
+    );
+  });
+
+  return normalized; // length = 63
+}
+
+// Euclidean distance for gesture comparison
+function euclideanDistance(a, b) {
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) {
+    sum += (a[i] - b[i]) ** 2;
+  }
+  return Math.sqrt(sum);
+}
+
+// Predict gesture using normalized landmarks
+function predictGestureNormalized(input, dataset) {
+  let bestLabel = null;
+  let bestScore = Infinity;
+
+  for (const label in dataset) {
+    for (const sample of dataset[label]) {
+      const dist = euclideanDistance(input, sample);
+      if (dist < bestScore) {
+        bestScore = dist;
+        bestLabel = label;
+      }
+    }
+  }
+  return bestLabel;
+}
+
+// Convert landmarks to flattened array for ML (legacy - kept for compatibility)
 function landmarksToArray(landmarks) {
   return landmarks.flatMap(p => [p.x, p.y, p.z]);
 }
@@ -627,7 +685,7 @@ function loadTrainingData() {
   }
 }
 
-// Load training data from backend API
+// Load training data from backend API (now expecting normalized landmarks)
 async function loadFromBackend() {
   try {
     const response = await fetch('https://ableassist-project.onrender.com/api/gestures/all');
@@ -645,13 +703,25 @@ async function loadFromBackend() {
           if (!trainingData[gesture.label]) {
             trainingData[gesture.label] = [];
           }
-          trainingData[gesture.label].push(gesture.landmarks);
+          // Backend data should already be normalized, but we'll check
+          if (gesture.normalized) {
+            trainingData[gesture.label].push(gesture.landmarks);
+          } else {
+            // Legacy data - normalize it before adding
+            if (Array.isArray(gesture.landmarks) && gesture.landmarks.length === 63) {
+              // Already flattened normalized data
+              trainingData[gesture.label].push(gesture.landmarks);
+            } else {
+              // Raw landmarks - need to normalize (unlikely with new backend)
+              console.warn('Received non-normalized data from backend - skipping');
+            }
+          }
         }
       });
       
       // Save merged data to localStorage
       localStorage.setItem('gestureTrainingData', JSON.stringify(trainingData));
-      console.log('Loaded and merged training data from backend:', Object.keys(trainingData));
+      console.log('Loaded and merged normalized training data from backend:', Object.keys(trainingData));
     }
   } catch (error) {
     console.error('Error loading from backend:', error);
@@ -671,7 +741,7 @@ function saveTrainingData() {
   }
 }
 
-// Save training data to backend API
+// Save training data to backend API (now using normalized landmarks)
 async function saveToBackend() {
   try {
     for (const [label, samples] of Object.entries(trainingData)) {
@@ -683,16 +753,17 @@ async function saveToBackend() {
           },
           body: JSON.stringify({
             label: label,
-            landmarks: sample
+            landmarks: sample, // These are now normalized landmarks
+            normalized: true // Flag to indicate data is normalized
           })
         });
         
         if (!response.ok) {
-          console.warn('Failed to save gesture to backend:', response.statusText);
+          console.warn('Failed to save normalized gesture to backend:', response.statusText);
         }
       }
     }
-    console.log('Successfully saved training data to backend');
+    console.log('Successfully saved normalized training data to backend');
   } catch (error) {
     console.error('Error saving to backend:', error);
   }
@@ -733,14 +804,15 @@ function captureSample(label) {
     return;
   }
 
+  // Use normalized landmarks for device-independent training
+  const normalizedData = normalizeLandmarks(currentLandmarks);
+  
   trainingData[label] ??= [];
-  trainingData[label].push(
-    currentLandmarks.flatMap(p => [p.x, p.y, p.z])
-  );
+  trainingData[label].push(normalizedData);
 
   // Save to localStorage after each capture
   saveTrainingData();
-  console.log(`Captured ${label}`);
+  console.log(`Captured normalized sample for ${label}`);
 }
 
 // Simple in-memory training store: letter -> { sum: Float32Array, count: number }
@@ -857,26 +929,22 @@ function onGestureDetected(letter) {
   mirrorToSearchBoxes();
 }
 
-// Enhanced gesture detection with better UI feedback
+// Enhanced gesture detection with better UI feedback using normalized landmarks
 function predictGestureSimple() {
   if (!currentLandmarks || Object.keys(trainingData).length === 0) {
     return null;
   }
 
-  const currentFeatures = currentLandmarks.flatMap(p => [p.x, p.y, p.z]);
+  // Normalize the current landmarks for device-independent comparison
+  const normalizedCurrent = normalizeLandmarks(currentLandmarks);
   let bestMatch = null;
   let bestDistance = Infinity;
 
-  // Compare with all trained samples
+  // Compare with all trained samples (which are now normalized)
   for (const [label, samples] of Object.entries(trainingData)) {
     for (const sample of samples) {
-      // Calculate Euclidean distance
-      let distance = 0;
-      for (let i = 0; i < currentFeatures.length; i++) {
-        const diff = currentFeatures[i] - sample[i];
-        distance += diff * diff;
-      }
-      distance = Math.sqrt(distance);
+      // Calculate Euclidean distance between normalized vectors
+      const distance = euclideanDistance(normalizedCurrent, sample);
 
       if (distance < bestDistance) {
         bestDistance = distance;
@@ -885,8 +953,8 @@ function predictGestureSimple() {
     }
   }
 
-  // Return match if it's close enough (threshold can be tuned)
-  const threshold = 0.5;
+  // Return match if it's close enough (threshold can be tuned for normalized data)
+  const threshold = 0.3; // Lower threshold for normalized data
   return bestDistance < threshold ? bestMatch : null;
 }
 

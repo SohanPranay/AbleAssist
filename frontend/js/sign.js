@@ -541,6 +541,11 @@ function normalizeLandmarks(landmarks) {
     );
   });
 
+  console.log('🔍 STEP 2 - NORMALIZATION CHECK:');
+  console.log('Normalized length:', normalized.length); // Must be 63
+  console.log('First 3 values:', normalized.slice(0, 3));
+  console.log('Hand size:', handSize);
+
   return normalized; // length = 63
 }
 
@@ -675,7 +680,22 @@ function loadTrainingData() {
     if (saved) {
       const parsed = JSON.parse(saved);
       Object.assign(trainingData, parsed);
+      console.log('🔍 STEP 1 - TRAINING DATA CHECK:');
       console.log('Loaded training data from localStorage:', Object.keys(trainingData));
+      console.log('Training data samples per label:');
+      Object.entries(trainingData).forEach(([label, samples]) => {
+        console.log(`${label}: ${samples.length} samples`);
+      });
+      
+      // Check if we have actual training data
+      const totalSamples = Object.values(trainingData).reduce((sum, samples) => sum + samples.length, 0);
+      console.log(`Total training samples: ${totalSamples}`);
+      
+      if (totalSamples === 0) {
+        console.warn('❌ NO TRAINING DATA FOUND - This is the bug!');
+      } else {
+        console.log('✅ Training data exists');
+      }
     }
     
     // Also load from backend
@@ -804,15 +824,22 @@ function captureSample(label) {
     return;
   }
 
+  console.log('🔍 TRAINING - CAPTURING SAMPLE FOR:', label);
+  console.log('Raw landmarks count:', currentLandmarks.length);
+  
   // Use normalized landmarks for device-independent training
   const normalizedData = normalizeLandmarks(currentLandmarks);
+  
+  console.log('✅ TRAINING - Normalized data captured');
+  console.log('Sample length:', normalizedData.length);
   
   trainingData[label] ??= [];
   trainingData[label].push(normalizedData);
 
   // Save to localStorage after each capture
   saveTrainingData();
-  console.log(`Captured normalized sample for ${label}`);
+  console.log(`✅ TRAINING - Captured normalized sample for ${label}`);
+  console.log(`Total samples for ${label}:`, trainingData[label].length);
 }
 
 // Simple in-memory training store: letter -> { sum: Float32Array, count: number }
@@ -932,20 +959,27 @@ function onGestureDetected(letter) {
 // Enhanced gesture detection with better UI feedback using normalized landmarks
 function predictGestureSimple() {
   if (!currentLandmarks || Object.keys(trainingData).length === 0) {
+    console.log('🔍 PREDICTION - No landmarks or no training data');
     return null;
   }
 
-  // Normalize the current landmarks for device-independent comparison
+  console.log('🔍 STEP 3 - DISTANCE THRESHOLD CHECK:');
+  console.log('Available training labels:', Object.keys(trainingData));
+  
+  // Normalize current landmarks for device-independent comparison
   const normalizedCurrent = normalizeLandmarks(currentLandmarks);
+  console.log('✅ PREDICTION - Normalized current landmarks');
+  
   let bestMatch = null;
   let bestDistance = Infinity;
 
   // Compare with all trained samples (which are now normalized)
   for (const [label, samples] of Object.entries(trainingData)) {
+    console.log(`Comparing with ${label} (${samples.length} samples)`);
     for (const sample of samples) {
       // Calculate Euclidean distance between normalized vectors
       const distance = euclideanDistance(normalizedCurrent, sample);
-
+      
       if (distance < bestDistance) {
         bestDistance = distance;
         bestMatch = label;
@@ -953,9 +987,17 @@ function predictGestureSimple() {
     }
   }
 
-  // Return match if it's close enough (threshold can be tuned for normalized data)
-  const threshold = 0.3; // Lower threshold for normalized data
-  return bestDistance < threshold ? bestMatch : null;
+  console.log(`🔍 PREDICTION RESULTS:`);
+  console.log(`Best match: ${bestMatch}`);
+  console.log(`Best distance: ${bestDistance}`);
+  
+  // TEMPORARY FIX: Remove threshold completely to see if prediction works
+  console.log('✅ PREDICTION - Returning best match without threshold');
+  return bestMatch; // No threshold condition - always return best match
+  
+  // Original threshold logic (commented out for debugging)
+  // const threshold = 0.3; // Lower threshold for normalized data
+  // return bestDistance < threshold ? bestMatch : null;
 }
 
 // Debounce / stability gating: emit one character per held sign
@@ -965,31 +1007,51 @@ let lastEmittedLabel = null;
 const REQUIRED_STABLE_FRAMES = 4;
 
 function onHandsResults(results) {
-  // Update status based on hand detection
+  console.log('🔍 STEP 5 - HAND DETECTION VALIDATION:');
+  console.log('MediaPipe results:', results);
+  
+  // FINAL HARD FIX: Check if training data exists
+  if (!trainingData || Object.keys(trainingData).length === 0) {
+    console.log('❌ NO TRAINING DATA - Model not trained');
+    if (statusText) statusText.innerText = 'Model not trained. Please train gestures first.';
+    return;
+  }
+  
+  // Check if hand is detected
   if (!results || !results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    console.log('❌ NO HAND DETECTED - Show hand clearly');
     // Reset gating when hand leaves the frame
     lastPredictedLabel = null;
     stableFrames = 0;
     lastEmittedLabel = null;
     if (detectedLetterSpan) detectedLetterSpan.innerText = '-';
     if (statusText && !statusText.innerText.includes('No gestures trained')) {
-      statusText.innerText = 'No hand detected (move hand into frame, improve lighting).';
+      statusText.innerText = 'Show hand clearly in camera frame';
     }
     return;
   }
 
-  if (statusText && statusText.innerText.includes('No hand detected')) {
+  console.log('✅ HAND DETECTED - Proceeding with prediction');
+  currentLandmarks = results.multiHandLandmarks[0];
+  
+  if (statusText && statusText.innerText.includes('Show hand clearly')) {
     statusText.innerText = 'Hand detected. Ready.';
   }
 
   // Skip recognition during training
   if (trainMode) {
+    console.log('⏸️ TRAINING MODE - Skipping prediction');
     return;
   }
 
+  console.log('🔍 STARTING PREDICTION PROCESS...');
+  
   // Try to predict gesture using trained data
   const predictedLetter = predictGestureSimple();
+  console.log('🔍 PREDICTION RESULT:', predictedLetter);
+  
   if (predictedLetter) {
+    console.log('✅ PREDICTION SUCCESS - Letter:', predictedLetter);
     if (predictedLetter === lastPredictedLabel) stableFrames += 1;
     else {
       lastPredictedLabel = predictedLetter;
@@ -1001,26 +1063,23 @@ function onHandsResults(results) {
 
     // Emit only once per held sign
     if (stableFrames >= REQUIRED_STABLE_FRAMES && lastEmittedLabel !== predictedLetter) {
+      console.log('🎯 EMITTING GESTURE:', predictedLetter);
       lastEmittedLabel = predictedLetter;
       onGestureDetected(predictedLetter);
       if (statusText) statusText.innerText = `Detected: ${predictedLetter}`;
     } else {
       if (statusText) statusText.innerText = `Analyzing: ${predictedLetter}`;
     }
-  } else if (Object.keys(trainingData).length > 0) {
+  } else {
+    console.log('❌ NO PREDICTION MATCH - Continuing analysis');
     // We have training data but no match
     lastPredictedLabel = null;
     stableFrames = 0;
     if (detectedLetterSpan) {
       detectedLetterSpan.innerText = '?';
     }
-    if (statusText && !statusText.innerText.includes('No hand detected')) {
-      statusText.innerText = 'Analyzing gesture...';
-    }
-  } else {
-    // No training data yet
     if (statusText && !statusText.innerText.includes('Train')) {
-      statusText.innerText = 'No gestures trained. Turn Train Mode ON and save samples.';
+      statusText.innerText = 'Analyzing gesture...';
     }
   }
 }
@@ -1147,7 +1206,7 @@ initHands();
 initFaceMesh();
 // Initialize ML components
 initML();
-// Load saved training data
+// Load training data on page load
 loadTrainingData();
 
 // Allow calling from console if needed

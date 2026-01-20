@@ -22,6 +22,8 @@ const searchInput = document.getElementById('searchInput');
 // Optional search box on MultiMode page – used to mirror detected text into search.
 const voiceSearchBox = document.getElementById('voiceSearch');
 
+// In-memory training store (normalized landmark arrays per label)
+const trainingData = {};
 
 // Global current landmarks for ML
 let currentLandmarks = null;
@@ -676,26 +678,33 @@ const API_BASE = "https://ableassist-project.onrender.com";
 // Global gestures array - loaded from MongoDB on every app start
 let trainedGestures = [];
 
-// Load gestures from MongoDB on app startup
+// Load gestures from MongoDB and merge into the local cache
 async function loadGestures() {
   try {
     const res = await fetch(`${API_BASE}/api/gestures`);
-    trainedGestures = await res.json();
-    console.log("Loaded gestures:", trainedGestures.length);
-    
-    // Convert to trainingData format for compatibility
-    const trainingData = {};
-    trainedGestures.forEach(gesture => {
-      if (!trainingData[gesture.label]) {
-        trainingData[gesture.label] = [];
-      }
-      trainingData[gesture.label].push(gesture.data);
+    const gestures = await res.json();
+    if (!Array.isArray(gestures)) {
+      console.warn('Unexpected gestures payload');
+      return trainingData;
+    }
+
+    trainedGestures = [];
+
+    gestures.forEach((gesture) => {
+      const label = gesture.label;
+      const sample = gesture.data || gesture.landmarks;
+      if (!label || !Array.isArray(sample)) return;
+
+      if (!trainingData[label]) trainingData[label] = [];
+      trainingData[label].push(sample);
+      trainedGestures.push({ label, data: sample });
     });
-    
+
+    console.log('Loaded gestures:', trainedGestures.length);
     return trainingData;
   } catch (error) {
-    console.error("Failed to load gestures:", error);
-    return {};
+    console.error('Failed to load gestures:', error);
+    return trainingData;
   }
 }
 
@@ -745,14 +754,72 @@ async function loadFromBackend() {
   }
 }
 
+// Unified loader: merge localStorage, /api/gestures, and /api/gestures/all into trainingData
+async function loadTrainingData() {
+  // 1) local cache
+  try {
+    const cached = localStorage.getItem('gestureTrainingData');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && typeof parsed === 'object') {
+        Object.entries(parsed).forEach(([label, samples]) => {
+          if (!Array.isArray(samples)) return;
+          if (!trainingData[label]) trainingData[label] = [];
+          samples.forEach((s) => Array.isArray(s) && trainingData[label].push(s));
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Could not read cached training data', e);
+  }
+
+  // 2) primary gestures endpoint
+  await loadGestures();
+
+  // 3) fallback/legacy endpoint with normalized landmarks
+  try {
+    const res = await fetch(`${API_BASE}/api/gestures/all`);
+    if (res.ok) {
+      const list = await res.json();
+      if (Array.isArray(list)) {
+        list.forEach((gesture) => {
+          const label = gesture.label;
+          const sample = gesture.landmarks || gesture.data;
+          if (!label || !Array.isArray(sample)) return;
+          if (!trainingData[label]) trainingData[label] = [];
+          trainingData[label].push(sample);
+          trainedGestures.push({ label, data: sample });
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Optional gestures/all fetch failed', e);
+  }
+
+  // Persist merged store for fast reloads
+  try {
+    localStorage.setItem('gestureTrainingData', JSON.stringify(trainingData));
+  } catch (e) {
+    console.warn('Failed to cache training data', e);
+  }
+
+  console.log('Training data ready', Object.keys(trainingData));
+  return trainingData;
+}
+
 // Save training data to localStorage and backend
 function saveTrainingData() {
   try {
     localStorage.setItem('gestureTrainingData', JSON.stringify(trainingData));
     console.log('Saved training data to localStorage');
     
-    // Also save to backend
-    saveToBackend();
+    // Also save each label to backend (best-effort)
+    Object.entries(trainingData).forEach(([label, samples]) => {
+      if (!Array.isArray(samples)) return;
+      samples.forEach((sample) => {
+        if (Array.isArray(sample)) saveToBackend(label, sample);
+      });
+    });
   } catch (e) {
     console.warn('Failed to save training data:', e);
   }
@@ -827,12 +894,18 @@ function captureSample(label) {
   console.log('✅ TRAINING - Normalized data captured');
   console.log('Sample length:', normalizedData.length);
   
-  // Save directly to MongoDB
+  // Save locally for immediate use
+  if (!trainingData[label]) trainingData[label] = [];
+  trainingData[label].push(normalizedData);
+  trainedGestures.push({ label, data: normalizedData });
+
+  // Persist and sync with backend
+  saveTrainingData();
   saveToBackend(label, normalizedData);
-  console.log(`✅ TRAINING - Captured and saved sample for ${label}`);
-  
-  // Reload gestures from MongoDB to get latest data
-  loadGestures();
+
+  const samples = trainingData[label].length;
+  if (statusText) statusText.innerText = `Saved ${label} sample (${samples})`;
+  console.log(`✅ TRAINING - Captured and saved sample for ${label} (total ${samples})`);
 }
 
 // Simple in-memory training store: letter -> { sum: Float32Array, count: number }

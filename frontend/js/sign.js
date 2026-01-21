@@ -25,6 +25,18 @@ const voiceSearchBox = document.getElementById('voiceSearch');
 // In-memory training store (normalized landmark arrays per label)
 const trainingData = {};
 
+// ===== GESTURE BOOK SEARCH LISTENER =====
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.toLowerCase();
+    const items = document.querySelectorAll('.gesture-item');
+    items.forEach(item => {
+      const text = item.innerText.toLowerCase();
+      item.style.display = text.includes(query) ? 'block' : 'none';
+    });
+  });
+}
+
 // Global current landmarks for ML
 let currentLandmarks = null;
 

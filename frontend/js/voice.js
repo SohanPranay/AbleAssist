@@ -2,7 +2,7 @@ const startBtn = document.getElementById('startVoice');
 const stopBtn = document.getElementById('stopVoice');
 const voiceStatus = document.getElementById('voiceStatus');
 const voiceTranscript = document.getElementById('voiceTranscript');
-const voiceSearch = document.getElementById('voiceSearch');
+const voiceSearch = document.getElementById('indexSearchInput') || document.getElementById('voiceSearch');
 
 // NOTE: Only modify/create this file per requirements.
 // Web Speech API (standard + webkit)

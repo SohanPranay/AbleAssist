@@ -21,7 +21,7 @@ const searchToggleBtn = document.getElementById('searchToggleBtn');
 const searchInput = document.getElementById('searchInput');
 // Optional search box on MultiMode page – used to mirror detected text into search.
 function getVoiceSearchInput() {
-  return document.getElementById('voiceSearchInput') || document.getElementById('voiceSearch');
+  return document.getElementById('indexSearchInput') || document.getElementById('voiceSearchInput') || document.getElementById('voiceSearch');
 }
 const voiceSearchBox = getVoiceSearchInput();
 

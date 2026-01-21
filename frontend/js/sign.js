@@ -678,34 +678,99 @@ const API_BASE = "https://ableassist-project.onrender.com";
 // Global gestures array - loaded from MongoDB on every app start
 let trainedGestures = [];
 
-// Load gestures from MongoDB and merge into the local cache
-async function loadGestures() {
+// Merge a single sample into in-memory stores
+function addSampleToStores(label, sample) {
+  if (!label || !Array.isArray(sample)) return;
+  if (!trainingData[label]) trainingData[label] = [];
+  trainingData[label].push(sample);
+}
+
+// Rebuild the KNN and legacy fallback stores from trainingData (MongoDB + cache)
+async function hydrateClassifierFromTrainingData() {
+  const classifier = ensureKNN();
+
+  // Clear any previous session data
+  if (classifier && classifier.clearAllClasses) {
+    try { classifier.clearAllClasses(); } catch (e) { console.warn('clearAllClasses failed', e); }
+  }
   try {
-    const res = await fetch(`${API_BASE}/api/gestures`);
+    Object.keys(legacyTrainingData).forEach((k) => delete legacyTrainingData[k]);
+  } catch (_) {}
+
+  let added = 0;
+
+  Object.entries(trainingData).forEach(([label, samples]) => {
+    if (!Array.isArray(samples)) return;
+    samples.forEach((sample) => {
+      if (!Array.isArray(sample)) return;
+
+      // Feed modern KNN classifier
+      if (classifier && typeof tf !== 'undefined') {
+        tf.tidy(() => {
+          const tensor = tf.tensor(sample).expandDims(0);
+          classifier.addExample(tensor, label);
+        });
+      }
+
+      // Keep legacy mean-descriptor fallback aligned to the same data
+      if (!legacyTrainingData[label]) {
+        legacyTrainingData[label] = { sum: new Float32Array(sample.length), count: 0 };
+      }
+      const store = legacyTrainingData[label];
+      store.count += 1;
+      for (let i = 0; i < sample.length; i++) {
+        store.sum[i] += sample[i];
+      }
+
+      added += 1;
+    });
+  });
+
+  console.log('Hydrated classifier from training data samples:', added);
+}
+
+// Build trainedGestures list from the current trainingData map
+function rebuildTrainedGesturesFromTrainingData() {
+  trainedGestures = [];
+  Object.entries(trainingData).forEach(([label, samples]) => {
+    if (!Array.isArray(samples)) return;
+    samples.forEach((sample) => {
+      if (!Array.isArray(sample)) return;
+      trainedGestures.push({ label, data: sample });
+    });
+  });
+}
+
+// Generic fetch + merge helper for gesture endpoints
+async function mergeGesturesFromEndpoint(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn('Failed to load gestures from', url, res.statusText);
+      return;
+    }
     const gestures = await res.json();
     if (!Array.isArray(gestures)) {
-      console.warn('Unexpected gestures payload');
-      return trainingData;
+      console.warn('Unexpected gestures payload from', url);
+      return;
     }
-
-    trainedGestures = [];
 
     gestures.forEach((gesture) => {
       const label = gesture.label;
       const sample = gesture.data || gesture.landmarks;
-      if (!label || !Array.isArray(sample)) return;
-
-      if (!trainingData[label]) trainingData[label] = [];
-      trainingData[label].push(sample);
-      trainedGestures.push({ label, data: sample });
+      addSampleToStores(label, sample);
     });
 
-    console.log('Loaded gestures:', trainedGestures.length);
-    return trainingData;
+    console.log('Merged gestures from', url, 'count:', gestures.length);
   } catch (error) {
-    console.error('Failed to load gestures:', error);
-    return trainingData;
+    console.error('Failed to load gestures from', url, error);
   }
+}
+
+// Load gestures from MongoDB and merge into the local cache
+async function loadGestures() {
+  await mergeGesturesFromEndpoint(`${API_BASE}/api/gestures`);
+  return trainingData;
 }
 
 // Load gestures immediately when script loads
@@ -714,7 +779,7 @@ loadGestures();
 // Load training data from backend API (now expecting normalized landmarks)
 async function loadFromBackend() {
   try {
-    const response = await fetch(`${API_BASE}/api/gestures/all`);
+    const response = await fetch(`${API_BASE}/api/gesture/all`);
     if (!response.ok) {
       console.warn('Failed to load gestures from backend:', response.statusText);
       return;
@@ -754,8 +819,10 @@ async function loadFromBackend() {
   }
 }
 
-// Unified loader: merge localStorage, /api/gestures, and /api/gestures/all into trainingData
+// Unified loader: merge localStorage, /api/gestures, and /api/gesture/all into trainingData
 async function loadTrainingData() {
+  trainedGestures = [];
+
   // 1) local cache
   try {
     const cached = localStorage.getItem('gestureTrainingData');
@@ -778,20 +845,7 @@ async function loadTrainingData() {
 
   // 3) fallback/legacy endpoint with normalized landmarks
   try {
-    const res = await fetch(`${API_BASE}/api/gestures/all`);
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list)) {
-        list.forEach((gesture) => {
-          const label = gesture.label;
-          const sample = gesture.landmarks || gesture.data;
-          if (!label || !Array.isArray(sample)) return;
-          if (!trainingData[label]) trainingData[label] = [];
-          trainingData[label].push(sample);
-          trainedGestures.push({ label, data: sample });
-        });
-      }
-    }
+    await mergeGesturesFromEndpoint(`${API_BASE}/api/gesture/all`);
   } catch (e) {
     console.warn('Optional gestures/all fetch failed', e);
   }
@@ -802,6 +856,9 @@ async function loadTrainingData() {
   } catch (e) {
     console.warn('Failed to cache training data', e);
   }
+
+  rebuildTrainedGesturesFromTrainingData();
+  await hydrateClassifierFromTrainingData();
 
   console.log('Training data ready', Object.keys(trainingData));
   return trainingData;

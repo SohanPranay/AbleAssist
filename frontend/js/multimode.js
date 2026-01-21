@@ -76,3 +76,19 @@ function openWebsite(name) {
 
   window.open(url, "_blank");
 }
+
+// Local filter for multimode gesture list (page-specific, no side effects)
+const multimodeSearch = document.getElementById("multimodeSearch");
+
+if (multimodeSearch) {
+  multimodeSearch.addEventListener("input", () => {
+    const query = multimodeSearch.value.toLowerCase();
+
+    const items = document.querySelectorAll(".multimode-gesture");
+
+    items.forEach(item => {
+      const text = item.innerText.toLowerCase();
+      item.style.display = text.includes(query) ? "" : "none";
+    });
+  });
+}

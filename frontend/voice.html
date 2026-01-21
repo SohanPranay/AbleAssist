@@ -109,6 +109,14 @@
       <div id="gesturePreview" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #eee">
         <!-- preview populated on item click -->
       </div>
+      <div style="margin:8px 0 4px 0">
+        <input
+          id="multimodeSearch"
+          type="text"
+          placeholder="Search gesture..."
+          style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;"
+        />
+      </div>
       <div class="gesture-grid" id="gestureGrid"></div>
     </div>
   </div>
@@ -165,7 +173,7 @@
         previewEl.appendChild(big); previewEl.appendChild(lab); previewEl.appendChild(meaningEl);
       }
       letters.forEach(l => {
-        const item = document.createElement('div'); item.className = 'gesture-item';
+        const item = document.createElement('div'); item.className = 'gesture-item multimode-gesture';
         const label = document.createElement('div'); label.className = 'ltr'; label.textContent = l;
         const img = document.createElement('img'); img.src = `images/gestures/${l}.svg`; img.alt = `${l} sign`;
         item.appendChild(label);

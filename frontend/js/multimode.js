@@ -92,3 +92,26 @@ if (multimodeSearch) {
     });
   });
 }
+
+// Minimal keydown handler for the voice/multimode search box (Enter-only)
+const voiceSearchInput = document.getElementById("voiceSearchInput");
+
+if (voiceSearchInput) {
+  voiceSearchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const query = voiceSearchInput.value.trim().toLowerCase();
+      if (!query) return;
+
+      handleSearchQuery(query);
+    }
+  });
+}
+
+function handleSearchQuery(query) {
+  if (query.includes("youtube")) {
+    window.open("https://www.youtube.com", "_blank");
+    return;
+  }
+
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank");
+}

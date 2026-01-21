@@ -20,7 +20,10 @@ const emotionDisplay = document.getElementById('emotionDisplay');
 const searchToggleBtn = document.getElementById('searchToggleBtn');
 const searchInput = document.getElementById('searchInput');
 // Optional search box on MultiMode page – used to mirror detected text into search.
-const voiceSearchBox = document.getElementById('voiceSearch');
+function getVoiceSearchInput() {
+  return document.getElementById('voiceSearchInput') || document.getElementById('voiceSearch');
+}
+const voiceSearchBox = getVoiceSearchInput();
 
 // In-memory training store (normalized landmark arrays per label)
 const trainingData = {};
@@ -1067,7 +1070,7 @@ function onGestureDetected(letter) {
     }
   }
 
-  const searchInput = document.getElementById("voiceSearch");
+  const searchInput = getVoiceSearchInput();
   if (searchInput) {
     searchInput.value = resultText ? resultText.value : '';
     searchInput.focus();

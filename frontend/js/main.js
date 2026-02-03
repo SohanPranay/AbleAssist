@@ -71,29 +71,34 @@ document.addEventListener('DOMContentLoaded', function () {
 document.addEventListener('DOMContentLoaded', function () {
   try {
     if (!document.body || document.body.id !== 'indexPage') return;
-    const aboutBtn = Array.from(document.querySelectorAll('.btn-secondary')).find(b => (b.textContent || '').trim().toLowerCase() === 'about us');
-    const modal = document.getElementById('aboutModal');
-    const closeBtn = document.getElementById('aboutCloseBtn');
-    if (aboutBtn && modal) {
-      aboutBtn.addEventListener('click', function () {
-        modal.style.display = 'flex';
-        modal.setAttribute('aria-hidden', 'false');
-      });
-    }
-    if (closeBtn && modal) {
-      closeBtn.addEventListener('click', function () {
+    const aboutBtn = document.getElementById('aboutBtn');
+    const aboutModal = document.getElementById('aboutModal');
+    const aboutCloseBtn = document.getElementById('aboutCloseBtn');
+    const howBtn = document.getElementById('howToBtn');
+    const howModal = document.getElementById('howToModal');
+    const howCloseBtn = document.getElementById('howToCloseBtn');
+
+    function wireModal(openBtn, modal, closeBtn) {
+      if (!modal) return;
+      const hide = () => {
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
-      });
-    }
-    if (modal) {
+      };
+      const show = () => {
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+        const body = modal.querySelector('.modal-body');
+        if (body) body.scrollTo({ top: 0 });
+      };
+      if (openBtn) openBtn.addEventListener('click', show);
+      if (closeBtn) closeBtn.addEventListener('click', hide);
       modal.addEventListener('click', function (e) {
-        if (e.target === modal) {
-          modal.style.display = 'none';
-          modal.setAttribute('aria-hidden', 'true');
-        }
+        if (e.target === modal) hide();
       });
     }
+
+    wireModal(aboutBtn, aboutModal, aboutCloseBtn);
+    wireModal(howBtn, howModal, howCloseBtn);
   } catch (_) {}
 });
 

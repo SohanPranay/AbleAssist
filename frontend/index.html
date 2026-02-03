@@ -29,40 +29,96 @@
         <p>Welcome to AbleAssist! An assistant that understands ability, not limitation.</p>
         <div class="buttons">
           <button class="btn-primary"><a href="voice.html" style="text-decoration:none;color:inherit;">Guide me</a></button>
-          <button class="btn-secondary">About us</button>
+          <button class="btn-secondary" id="aboutBtn"><span aria-hidden="true">ℹ️</span> About us</button>
+          <button class="btn-secondary" id="howToBtn"><span aria-hidden="true">❔</span> How to use?</button>
         </div>
       </div>
     </section>
   </div>
 
   <!-- About Us Modal -->
-  <div id="aboutModal" aria-hidden="true" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; padding:20px; z-index:1000;">
-    <div role="dialog" aria-modal="true" aria-labelledby="aboutTitle" style="max-width:800px; width:100%; background:#ffffff; color:#111; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.25);">
-      <div style="display:flex; justify-content:flex-end; padding:8px 12px;">
-        <button id="aboutCloseBtn" aria-label="Close About AbleAssist" style="background:#eee; border:0; border-radius:8px; padding:8px 12px; cursor:pointer;">Close</button>
+  <div id="aboutModal" class="modal-overlay" aria-hidden="true">
+    <div role="dialog" aria-modal="true" aria-labelledby="aboutTitle" class="modal-content">
+      <div class="modal-header">
+        <button id="aboutCloseBtn" aria-label="Close About AbleAssist" class="modal-close">Close</button>
       </div>
-      <div style="padding:10px 24px 24px; text-align:center;">
-        <h2 id="aboutTitle" style="margin:6px 0 14px; font-weight:800; font-size:28px;">AbleAssist</h2>
-        <p style="margin:0 auto 12px; max-width:720px; line-height:1.6;">
-          AbleAssist is an accessibility-focused web application designed to make digital interaction more inclusive for everyone. Our project combines voice assistance, <a href="sign.html" style="color:#111;">sign language recognition</a>, and multimodal interaction to help bridge communication gaps for people with different abilities.
+      <div class="modal-body" id="aboutBody">
+        <h2 id="aboutTitle">AbleAssist</h2>
+        <p>
+          AbleAssist is an accessibility-focused web application designed to make digital interaction more inclusive for everyone. Our project combines voice assistance, <a href="sign.html">sign language recognition</a>, and multimodal interaction to help bridge communication gaps for people with different abilities.
         </p>
-        <p style="margin:0 auto 12px; max-width:720px; line-height:1.6;">
+        <p>
           The core idea behind AbleAssist is to allow users to interact naturally—whether by speaking, typing, or using hand gestures—without barriers. By integrating real-time camera input, speech recognition, and gesture-based controls, we aim to create a platform that adapts to the user, not the other way around.
         </p>
-        <p style="margin:0 auto 4px; max-width:720px; line-height:1.6; font-weight:600;">This project was developed with a strong focus on:</p>
-        <ul style="display:inline-block; text-align:left; margin:0 auto 12px; padding-left:18px; line-height:1.6;">
+        <p class="emphasis">This project was developed with a strong focus on:</p>
+        <ul>
           <li>Accessibility and inclusivity</li>
           <li>Real-time voice and sign language interaction</li>
           <li>User-friendly and intuitive design</li>
           <li>Assistive technology for everyday use</li>
         </ul>
-        <p style="margin:0 auto 12px; max-width:720px; line-height:1.6;">
+        <p>
           AbleAssist is built as a learning-driven project, combining web technologies and machine learning concepts to explore how AI can be used responsibly to improve accessibility.
         </p>
-        <h3 style="margin:12px 0 6px; font-weight:800;">Team</h3>
-        <p style="margin:0 auto 8px; max-width:720px; line-height:1.6;">This project is developed by:</p>
-        <p style="margin:0; font-weight:700;">Sohan Pranay</p>
-        <p style="margin:0 0 14px; font-weight:700;">Aditi Bera</p>
+        <h3>Team</h3>
+        <p>This project is developed by:</p>
+        <p class="strong">Sohan Pranay</p>
+        <p class="strong">Aditi Bera</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- How To Use Modal -->
+  <div id="howToModal" class="modal-overlay" aria-hidden="true">
+    <div role="dialog" aria-modal="true" aria-labelledby="howToTitle" class="modal-content">
+      <div class="modal-header">
+        <button id="howToCloseBtn" aria-label="Close How to use" class="modal-close">Close</button>
+      </div>
+      <div class="modal-body" id="howToBody">
+        <h2 id="howToTitle">How to use?</h2>
+        <ul>
+          <li>Open the website using a modern browser (Chrome recommended).</li>
+          <li>Ensure you have a working camera and internet connection.</li>
+          <li>When prompted, allow camera access.</li>
+          <li>Turn Camera ON to start gesture detection.</li>
+          <li>Show a trained hand gesture clearly in front of the camera.</li>
+          <li>The detected gesture will appear automatically on screen.</li>
+          <li>Normal users do not need to train gestures.</li>
+          <li>Gestures are already trained and shared across all devices.</li>
+        </ul>
+        <h3>To add new gestures (admin/trainer only):</h3>
+        <ul>
+          <li>Turn Camera ON.</li>
+          <li>Select the gesture label.</li>
+          <li>Turn Training Mode ON.</li>
+          <li>Show the gesture clearly for 2-3 seconds.</li>
+          <li>Training count will increase automatically.</li>
+          <li>Turn Training Mode OFF after training.</li>
+          <li>Newly trained gestures are saved and available on all devices.</li>
+          <li>Open the same website link on another phone or laptop.</li>
+          <li>Previously trained gestures will work without retraining.</li>
+        </ul>
+        <h3>On the multimode page:</h3>
+        <ul>
+          <li>Gestures trigger actions automatically.</li>
+          <li>Use the search bar to type commands (example: youtube).</li>
+          <li>Press Enter to perform the action.</li>
+        </ul>
+        <h3>For best results:</h3>
+        <ul>
+          <li>Use good lighting.</li>
+          <li>Keep your hand fully visible.</li>
+          <li>Avoid fast hand movement while training.</li>
+        </ul>
+        <h3>If something doesn't work:</h3>
+        <ul>
+          <li>Refresh the page.</li>
+          <li>Check camera permission is set to Allow.</li>
+          <li>Turn camera OFF and ON again.</li>
+          <li>Ensure internet connection is active.</li>
+          <li>Training saves multiple frames per gesture -- this is normal and improves accuracy.</li>
+          <li>Do not close the browser tab while training is in progress.</li>
+        </ul>
       </div>
     </div>
   </div>
